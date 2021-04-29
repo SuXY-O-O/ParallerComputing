@@ -1,0 +1,6 @@
+.vscode/
+./buildtmp/
+*.o
+*.sh
+*.srun
+*.json
