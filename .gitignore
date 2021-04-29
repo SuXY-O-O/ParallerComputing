@@ -2,5 +2,4 @@
 ./buildtmp/
 *.o
 *.sh
-*.srun
 *.json
