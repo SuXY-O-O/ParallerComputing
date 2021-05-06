@@ -26,15 +26,19 @@ int main(int argc,char* argv[])
     MPI_Init(&argc,&argv);
     MPI_Comm_rank(MPI_COMM_WORLD,&MyID);
 
-    PlusNum=60;
+    PlusNum=600000;
     DataSize = BaseNum*PlusNum;
 
     if (MyID==0)
         printf("The DataSize is : %lu\n",PlusNum);
-    Psrs_Main();
 
-    if (MyID==0)
-        printf("\n");
+    MPI_Barrier(MPI_COMM_WORLD);
+    double start = MPI_Wtime();
+    Psrs_Main();
+    MPI_Barrier(MPI_COMM_WORLD);
+    double end = MPI_Wtime();   
+    printf("\n");
+    printf("Node %d used %lf seconds\n", MyID, end - start);
 
     MPI_Finalize();
     return 0;
@@ -74,6 +78,7 @@ void Psrs_Main( )
     mylength = DataSize / SumID;
     srand(MyID);
 
+    /*
     printf("This is node %d \n",MyID);
     printf("On node %d the input data is:\n",MyID);
     for (i=0;i<mylength;i++)
@@ -82,7 +87,7 @@ void Psrs_Main( )
         printf("%d : ",arr[i]);
     }
     printf("\n");
-
+    */
 	/*每个处理器将自己的n/P个数据用串行快速排序(Quicksort)，得到一个排好序的序列，对应于算法13.5步骤（1）*/
     MPI_Barrier( MPI_COMM_WORLD);
     quicksort(arr,0,mylength - 1);
@@ -248,10 +253,12 @@ void Psrs_Main( )
         MPI_Barrier(MPI_COMM_WORLD);
     }
 
+    /*
     printf("On node %d the sorted data is : \n",MyID);
     for (i=0;i<mylength;i++)
         printf("%d : ",arr[i]);
     printf("\n");
+    */
 }
 
 
