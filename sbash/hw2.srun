@@ -1,0 +1,25 @@
+#!/bin/bash
+
+#SBATCH -J 18373187-PC-hw1
+
+#SBATCH -p cpu-high
+
+#SBATCH -N 2
+
+#SBATCH -n 16
+
+#SBATCH --ntasks-per-node=8
+
+#SBATCH -t 5:00
+
+#SBATCH -o ../hw2/hw2.out
+
+#SBATCH -e ../hw2/hw2.err
+
+
+srun hostname | sort > ../hw2/machinefile.${SLURM_JOB_ID}
+NP=`cat ../hw2/machinefile.${SLURM_JOB_ID} | wc -l`
+
+module load intel/18.0.3.222
+
+mpirun -genv I_MPI_FABRICS shm:dapl -np ${NP} -f ../hw2/machinefile.${SLURM_JOB_ID} ../hw2/sort.o 
