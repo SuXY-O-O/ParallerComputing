@@ -4,9 +4,11 @@
 
 #SBATCH -p cpu-high
 
-#SBATCH -N 4
+#SBATCH -N 8
 
-#SBATCH -n 8
+#SBATCH -n 16
+
+#SBATCH --cpus-per-task=1
 
 #SBATCH --ntasks-per-node=2
 
@@ -22,6 +24,6 @@ NP=`cat ../hw3/machinefile.${SLURM_JOB_ID} | wc -l`
 
 module load intel/18.0.3.222
 
-cd ./hw3/
+cd ../hw3/
 
 mpirun -genv I_MPI_FABRICS shm:dapl -np ${NP} -f ../hw3/machinefile.${SLURM_JOB_ID} ../hw3/hw3.o 

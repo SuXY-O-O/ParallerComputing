@@ -7,9 +7,9 @@
 #include <math.h>
 #include <time.h>
 
-#define MAT_0 100
-#define MAT_1 100
-#define MAT_2 100
+#define MAT_0 500
+#define MAT_1 500
+#define MAT_2 500
 #define APATH "./mats/A"
 #define BPATH "./mats/B"
 #define CPATH "./mats/C"
