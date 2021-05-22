@@ -7,9 +7,9 @@
 #include <math.h>
 #include <time.h>
 
-#define MAT_0 8
-#define MAT_1 8
-#define MAT_2 8
+#define MAT_0 100
+#define MAT_1 100
+#define MAT_2 100
 #define APATH "./mats/A"
 #define BPATH "./mats/B"
 #define CPATH "./mats/C"
@@ -114,9 +114,10 @@ int main(int argc, char *argv[])
         make_mat(BPATH, MAT_1, MAT_2, b);
     }
 
-    // MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
+    double start = MPI_Wtime();
+
     MPI_Bcast(&(B[0][0]), MAT_1 * MAT_2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    // MPI_Barrier(MPI_COMM_WORLD);
 
     if (myid == 0)
     {
@@ -141,7 +142,7 @@ int main(int argc, char *argv[])
             MPI_Recv(C[i - 1], MAT_2, MPI_DOUBLE, sender, 100, MPI_COMM_WORLD, &status);
             if (numsend < MAT_0)
             {
-                MPI_Send(A[i - 1], MAT_1, MPI_DOUBLE, sender, 99, MPI_COMM_WORLD);
+                MPI_Send(A[numsend], MAT_1, MPI_DOUBLE, sender, 99, MPI_COMM_WORLD);
                 numsend++;
             }
             else
@@ -182,14 +183,34 @@ int main(int argc, char *argv[])
         }
     }
 
+    MPI_Barrier(MPI_COMM_WORLD);
+    double end = MPI_Wtime();
+
     if (myid == 0)
     {
+        printf("Start time:\t %.6lf\n", start);
+        printf("End   time:\t %.6lf\n", end);
+        printf("Used  time:\t %.6lf\n\n", end - start);
         print_mat(CPATH, MAT_0, MAT_2, c);
+        int i, j, k;
+        for (i = 0; i < MAT_0; i++)
+        {
+            for (j = 0; j < MAT_2; j++)
+            {
+                double tmp = 0;
+                for (k = 0; k < MAT_1; k++)
+                {
+                    tmp += A[i][k] * B[k][j];
+                }
+                if (tmp != C[i][j])
+                {
+                    printf("Wrong answer at (%d, %d)\n", i, j);
+                }
+            }
+        }
     }
 
-    MPI_Finalize(); 
-
-
+    MPI_Finalize();
 
     return 0;
 }
