@@ -164,11 +164,11 @@ int main(int argc, char **argv)
             }
         }
         MPI_Waitall(req_count, req, MPI_STATUS_IGNORE);
-        for (i = 0; i < req_count; i++)
-        {
-            free(send_tmp[i]);
-        }
-        free(send_tmp);
+        // for (i = 0; i < req_count; i++)
+        // {
+        //     free(send_tmp[i]);
+        // }
+        // free(send_tmp);
     }
     else
     {
