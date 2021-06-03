@@ -214,6 +214,7 @@ int main(int argc, char **argv)
         MPI_Irecv(recv_a, buff_sizeA, MPI_DOUBLE, ra, 0, MPI_COMM_WORLD, &(req[2]));
         MPI_Irecv(recv_b, buff_sizeB, MPI_DOUBLE, rb, 0, MPI_COMM_WORLD, &(req[3]));
         MPI_Waitall(4, req, MPI_STATUS_IGNORE);
+        MPI_Barrier(MPI_COMM_WORLD);
         memcpy(buffA, recv_a, buff_sizeA);
         memcpy(buffB, recv_b, buff_sizeB);
     }
