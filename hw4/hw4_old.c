@@ -192,6 +192,7 @@ int main(int argc, char **argv)
     while (1) 
     {
         count++;
+        printf("Begin compute at %d, time %d\n", myid, count);
         int i, j, k;
         for (i = 0; i < maxrows_a; i++) 
         {
