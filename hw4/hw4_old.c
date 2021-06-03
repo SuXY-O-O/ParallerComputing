@@ -109,7 +109,7 @@ int main(int argc, char **argv)
                         if (i * maxrows_a + ii < dim[0] && j * maxcols_a + jj < dim[1])
                         {
                             //printf("reaching A at %d\n", (i * maxrows_a + ii) * dim[0] + j * maxcols_a + jj);
-                            this_one = A[(i * maxrows_a + ii) * dim[0] + j * maxcols_a + jj];
+                            this_one = A[(i * maxrows_a + ii) * dim[1] + j * maxcols_a + jj];
                         }
                         if (target == 0)
                         {
@@ -133,15 +133,15 @@ int main(int argc, char **argv)
                 target = b_i * rp + j;
                 send_tmp = (double *)malloc(buff_sizeB);
                 count = 0;
-                for (ii = 0; ii < maxrows_a; ii++)
+                for (ii = 0; ii < maxrows_b; ii++)
                 {
-                    for (jj = 0; jj < maxcols_a; jj++)
+                    for (jj = 0; jj < maxcols_b; jj++)
                     {
                         double this_one = 0;
                         if (i * maxrows_b + ii < dim[1] && j * maxcols_b + jj < dim[2])
                         {
                             //printf("reaching B at %d\n", (i * maxrows_b + ii) * dim[1] + j * maxcols_b + jj);
-                            this_one = B[(i * maxrows_b + ii) * dim[1] + j * maxcols_b + jj];
+                            this_one = B[(i * maxrows_b + ii) * dim[2] + j * maxcols_b + jj];
                         }
                         if (target == 0)
                         {
@@ -206,7 +206,8 @@ int main(int argc, char **argv)
             {
                 for (k = 0; k < maxcols_a; k++)
                 {
-                    buffC[i * maxrows_a + j] += buffA[i * maxrows_a + k] * buffB[k * maxrows_b + j];
+                    printf("%d: %d, %d, %d\n", myid, i * maxcols_a + k, k * maxcols_b + j, i * maxcols_b + j);
+                    buffC[i * maxcols_b + j] += buffA[i * maxcols_a + k] * buffB[k * maxcols_b + j];
                 }
             }
         }
