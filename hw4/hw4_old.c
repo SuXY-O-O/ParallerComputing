@@ -80,8 +80,8 @@ int main(int argc, char **argv)
     buffA = (double *)malloc(buff_sizeA);
     buffB = (double *)malloc(buff_sizeB);
     buffC = (double *)malloc(buff_sizeC);
-    double *recv_a = (double *)malloc(buff_sizeA);
-    double *recv_b = (double *)malloc(buff_sizeB);
+    double *recvA = (double *)malloc(buff_sizeA);
+    double *recvB = (double *)malloc(buff_sizeB);
     memset(buffC, 0, buff_sizeC);
     printf("Alive3 %d\n", myid);
     if (myid == 0)
@@ -215,23 +215,23 @@ int main(int argc, char **argv)
             break;
         }
         printf("Begin transfer at %d, time %d\n", myid, count);
-        // MPI_Request req[4];
-        // MPI_Isend(buffA, buff_sizeA, MPI_DOUBLE, sa, 0, MPI_COMM_WORLD, req);
-        // MPI_Isend(buffB, buff_sizeB, MPI_DOUBLE, sb, 0, MPI_COMM_WORLD, &(req[1]));
-        // MPI_Irecv(recv_a, buff_sizeA, MPI_DOUBLE, ra, 0, MPI_COMM_WORLD, &(req[2]));
-        // MPI_Irecv(recv_b, buff_sizeB, MPI_DOUBLE, rb, 0, MPI_COMM_WORLD, &(req[3]));
-        // MPI_Waitall(4, req, MPI_STATUS_IGNORE);
+        MPI_Request req[4];
+        MPI_Isend(buffA, buff_sizeA / sizeof(double), MPI_DOUBLE, sa, 0, MPI_COMM_WORLD, req);
+        MPI_Isend(buffB, buff_sizeB / sizeof(double), MPI_DOUBLE, sb, 0, MPI_COMM_WORLD, &(req[1]));
+        MPI_Irecv(recvA, buff_sizeA / sizeof(double), MPI_DOUBLE, ra, 0, MPI_COMM_WORLD, &(req[2]));
+        MPI_Irecv(recvB, buff_sizeB / sizeof(double), MPI_DOUBLE, rb, 0, MPI_COMM_WORLD, &(req[3]));
+        MPI_Waitall(4, req, MPI_STATUS_IGNORE);
         // MPI_Barrier(MPI_COMM_WORLD);
-        MPI_Sendrecv(buffA, buff_sizeA / sizeof(double), MPI_DOUBLE, sa, 0,
-                     recv_a, buff_sizeA / sizeof(double), MPI_DOUBLE, ra, 0,
-                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Sendrecv(buffB, buff_sizeB / sizeof(double), MPI_DOUBLE, sb, 0,
-                     recv_b, buff_sizeB / sizeof(double), MPI_DOUBLE, rb, 0,
-                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        memcpy(buffA, recv_a, buff_sizeA);
-        memset(recv_a, 0, buff_sizeA);
-        memcpy(buffB, recv_b, buff_sizeB);
-        memset(recv_b, 0, buff_sizeB);
+        // MPI_Sendrecv(buffA, buff_sizeA / sizeof(double), MPI_DOUBLE, sa, 0,
+        //              recvA, buff_sizeA / sizeof(double), MPI_DOUBLE, ra, 0,
+        //              MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        // MPI_Sendrecv(buffB, buff_sizeB / sizeof(double), MPI_DOUBLE, sb, 0,
+        //              recvB, buff_sizeB / sizeof(double), MPI_DOUBLE, rb, 0,
+        //              MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        memcpy(buffA, recvA, buff_sizeA);
+        memset(recvA, 0, buff_sizeA);
+        memcpy(buffB, recvB, buff_sizeB);
+        memset(recvB, 0, buff_sizeB);
     }
     MPI_Barrier(MPI_COMM_WORLD);
     printf("Alive7 %d\n", myid);
