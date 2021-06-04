@@ -80,14 +80,15 @@ int main(int argc, char **argv)
     buffA = (double *)malloc(buff_sizeA);
     buffB = (double *)malloc(buff_sizeB);
     buffC = (double *)malloc(buff_sizeC);
-    double *recv_a = (double *)malloc(buff_sizeA);
-    double *recv_b = (double *)malloc(buff_sizeB);
+    double *recvA = (double *)malloc(buff_sizeA);
+    double *recvB = (double *)malloc(buff_sizeB);
     memset(buffC, 0, buff_sizeC);
     printf("Alive3 %d\n", myid);
     if (myid == 0)
     {
         int i, j;
         MPI_Request req[rp * rp * 2];
+        double **send_tmp = (double **)malloc(sizeof(double*) * rp * rp * 2);
         int req_count = 0;
         for (i = 0; i < rp; i++)
         {
@@ -97,7 +98,7 @@ int main(int argc, char **argv)
                 if (a_j < 0)
                     a_j = rp + a_j;
                 int target = i * rp + a_j;
-                double *send_tmp = (double *)malloc(buff_sizeA);
+                send_tmp[req_count] = (double *)malloc(buff_sizeA);
                 int ii, jj, count;
                 count = 0;
                 for (ii = 0; ii < maxrows_a; ii++)
@@ -116,7 +117,7 @@ int main(int argc, char **argv)
                         }
                         else
                         {
-                            send_tmp[count] = this_one;
+                            send_tmp[req_count][count] = this_one;
                         }
                         count++;
                     }
@@ -130,7 +131,7 @@ int main(int argc, char **argv)
                 if (b_i < 0)
                     b_i = rp + b_i;
                 target = b_i * rp + j;
-                send_tmp = (double *)malloc(buff_sizeB);
+                send_tmp[req_count] = (double *)malloc(buff_sizeB);
                 count = 0;
                 for (ii = 0; ii < maxrows_b; ii++)
                 {
@@ -139,7 +140,6 @@ int main(int argc, char **argv)
                         double this_one = 0;
                         if (i * maxrows_b + ii < dim[1] && j * maxcols_b + jj < dim[2])
                         {
-                            //printf("reaching B at %d\n", (i * maxrows_b + ii) * dim[1] + j * maxcols_b + jj);
                             this_one = B[(i * maxrows_b + ii) * dim[2] + j * maxcols_b + jj];
                         }
                         if (target == 0)
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
                         }
                         else
                         {
-                            send_tmp[count] = this_one;
+                            send_tmp[req_count][count] = this_one;
                         }
                         count++;
                     }
@@ -161,6 +161,11 @@ int main(int argc, char **argv)
             }
         }
         MPI_Waitall(req_count, req, MPI_STATUS_IGNORE);
+        for (i = 0; i < req_count; i++)
+        {
+            free(send_tmp[i]);
+        }
+        free(send_tmp);
     }
     else
     {
@@ -205,7 +210,6 @@ int main(int argc, char **argv)
             {
                 for (k = 0; k < maxcols_a; k++)
                 {
-                    //printf("%d: %d, %d, %d\n", myid, i * maxcols_a + k, k * maxcols_b + j, i * maxcols_b + j);
                     buffC[i * maxcols_b + j] += buffA[i * maxcols_a + k] * buffB[k * maxcols_b + j];
                 }
             }
@@ -215,23 +219,16 @@ int main(int argc, char **argv)
             break;
         }
         printf("Begin transfer at %d, time %d\n", myid, count);
-        // MPI_Request req[4];
-        // MPI_Isend(buffA, buff_sizeA, MPI_DOUBLE, sa, 0, MPI_COMM_WORLD, req);
-        // MPI_Isend(buffB, buff_sizeB, MPI_DOUBLE, sb, 0, MPI_COMM_WORLD, &(req[1]));
-        // MPI_Irecv(recv_a, buff_sizeA, MPI_DOUBLE, ra, 0, MPI_COMM_WORLD, &(req[2]));
-        // MPI_Irecv(recv_b, buff_sizeB, MPI_DOUBLE, rb, 0, MPI_COMM_WORLD, &(req[3]));
-        // MPI_Waitall(4, req, MPI_STATUS_IGNORE);
-        // MPI_Barrier(MPI_COMM_WORLD);
-        MPI_Sendrecv(buffA, buff_sizeA / sizeof(double), MPI_DOUBLE, sa, 0,
-                     recv_a, buff_sizeA / sizeof(double), MPI_DOUBLE, ra, 0,
-                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Sendrecv(buffB, buff_sizeB / sizeof(double), MPI_DOUBLE, sb, 0,
-                     recv_b, buff_sizeB / sizeof(double), MPI_DOUBLE, rb, 0,
-                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        memcpy(buffA, recv_a, buff_sizeA);
-        memset(recv_a, 0, buff_sizeA);
-        memcpy(buffB, recv_b, buff_sizeB);
-        memset(recv_b, 0, buff_sizeB);
+        MPI_Request req[4];
+        MPI_Isend(buffA, buff_sizeA / sizeof(double), MPI_DOUBLE, sa, 0, MPI_COMM_WORLD, req);
+        MPI_Isend(buffB, buff_sizeB / sizeof(double), MPI_DOUBLE, sb, 0, MPI_COMM_WORLD, &(req[1]));
+        MPI_Irecv(recvA, buff_sizeA / sizeof(double), MPI_DOUBLE, ra, 0, MPI_COMM_WORLD, &(req[2]));
+        MPI_Irecv(recvB, buff_sizeB / sizeof(double), MPI_DOUBLE, rb, 0, MPI_COMM_WORLD, &(req[3]));
+        MPI_Waitall(4, req, MPI_STATUS_IGNORE);
+        memcpy(buffA, recvA, buff_sizeA);
+        memset(recvA, 0, buff_sizeA);
+        memcpy(buffB, recvB, buff_sizeB);
+        memset(recvB, 0, buff_sizeB);
     }
     MPI_Barrier(MPI_COMM_WORLD);
     printf("Alive7 %d\n", myid);
@@ -242,7 +239,6 @@ int main(int argc, char **argv)
     else
     {
         int i, j;
-        // recv mat C
         for (i = 0; i < rp; i++)
         {
             for (j = 0; j < rp; j++)
@@ -250,7 +246,7 @@ int main(int argc, char **argv)
                 int source = i * rp + j;
                 if (source != 0)
                 {
-                    memset(buffC, 0, buff_sizeC);
+                    //memset(buffC, 0, buff_sizeC);
                     MPI_Recv(buffC, buff_sizeC / sizeof(double), MPI_DOUBLE, source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 }
                 printf("Begin write from %d\n", source);
