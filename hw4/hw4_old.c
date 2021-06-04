@@ -6,10 +6,39 @@
 #include <math.h>
 #include <memory.h>
 #include <time.h>
+#include <pthread.h>
 
 #define APATH "./mats/A.mat"
 #define BPATH "./mats/B.mat"
 #define CPATH "./mats/C.mat"
+
+struct threadArg
+{
+    int tid;
+    double *buffB;
+    double *buffA;
+    double *buffC;
+    int dim[3];
+    int numthreads;
+};
+
+void *worker(void *arg)
+{
+    int i, j, k;
+    struct threadArg *myarg = (struct threadArg *)arg;
+    for (i = myarg->tid; i < myarg->dim[0]; i += myarg->numthreads)
+    {
+        for (j = 0; j < myarg->dim[2]; j++)
+        {
+            for (k = 0; k < myarg->dim[1]; k++)
+            {
+                myarg->buffC[i * myarg->dim[2] + j] +=
+                    myarg->buffA[i * myarg->dim[1] + k] * myarg->buffB[k * myarg->dim[2] + j];
+            }
+        }
+    }
+    return NULL;
+}
 
 int main(int argc, char **argv)
 {
@@ -88,7 +117,7 @@ int main(int argc, char **argv)
     {
         int i, j;
         MPI_Request req[rp * rp * 2];
-        double **send_tmp = (double **)malloc(sizeof(double*) * rp * rp * 2);
+        double **send_tmp = (double **)malloc(sizeof(double *) * rp * rp * 2);
         int req_count = 0;
         for (i = 0; i < rp; i++)
         {
@@ -124,7 +153,7 @@ int main(int argc, char **argv)
                 }
                 if (target != 0)
                 {
-                    MPI_Isend(send_tmp, buff_sizeA / sizeof(double), MPI_DOUBLE, target, 0, MPI_COMM_WORLD, &(req[req_count]));
+                    MPI_Isend(send_tmp[req_count], buff_sizeA / sizeof(double), MPI_DOUBLE, target, 0, MPI_COMM_WORLD, &(req[req_count]));
                     req_count++;
                 }
                 int b_i = i - j;
@@ -155,7 +184,7 @@ int main(int argc, char **argv)
                 }
                 if (target != 0)
                 {
-                    MPI_Isend(send_tmp, buff_sizeB / sizeof(double), MPI_DOUBLE, target, 0, MPI_COMM_WORLD, &(req[req_count]));
+                    MPI_Isend(send_tmp[req_count], buff_sizeB / sizeof(double), MPI_DOUBLE, target, 0, MPI_COMM_WORLD, &(req[req_count]));
                     req_count++;
                 }
             }
@@ -199,20 +228,44 @@ int main(int argc, char **argv)
     int count = 0;
 
     printf("Alive6 %d\n", myid);
+    int numthreads = get_nprocs();
+    pthread_t *tids = (pthread_t *)malloc(numthreads * sizeof(pthread_t));
+    struct threadArg *targs = (struct threadArg *)malloc(numthreads * sizeof(struct threadArg));
+    int i;
+    for (i = 0; i < numthreads; i++)
+    {
+        targs[i].tid = i;
+        targs[i].buffB = buffB;
+        targs[i].buffA = buffA;
+        targs[i].buffC = buffC;
+        targs[i].dim[0] = maxrows_a;
+        targs[i].dim[1] = maxrows_b;
+        targs[i].dim[2] = maxcols_b;
+        targs[i].numthreads = numthreads;
+    }
     while (1)
     {
         count++;
         printf("Begin compute at %d, time %d\n", myid, count);
-        int i, j, k;
-        for (i = 0; i < maxrows_a; i++)
+        // int i, j, k;
+        // for (i = 0; i < maxrows_a; i++)
+        // {
+        //     for (j = 0; j < maxcols_b; j++)
+        //     {
+        //         for (k = 0; k < maxcols_a; k++)
+        //         {
+        //             buffC[i * maxcols_b + j] += buffA[i * maxcols_a + k] * buffB[k * maxcols_b + j];
+        //         }
+        //     }
+        // }
+        int i;
+        for (i = 0; i < numthreads; i++)
         {
-            for (j = 0; j < maxcols_b; j++)
-            {
-                for (k = 0; k < maxcols_a; k++)
-                {
-                    buffC[i * maxcols_b + j] += buffA[i * maxcols_a + k] * buffB[k * maxcols_b + j];
-                }
-            }
+            pthread_create(&tids[i], NULL, worker, &targs[i]);
+        }
+        for (i = 0; i < numthreads; i++)
+        {
+            pthread_join(tids[i], NULL);
         }
         if (count >= rp)
         {
@@ -246,7 +299,6 @@ int main(int argc, char **argv)
                 int source = i * rp + j;
                 if (source != 0)
                 {
-                    //memset(buffC, 0, buff_sizeC);
                     MPI_Recv(buffC, buff_sizeC / sizeof(double), MPI_DOUBLE, source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 }
                 printf("Begin write from %d\n", source);
@@ -256,11 +308,9 @@ int main(int argc, char **argv)
                 {
                     for (jj = 0; jj < maxcols_b; jj++)
                     {
-                        int this_one = buffC[count];
-                        count++;
                         if (i * maxrows_a + ii < dim[0] && j * maxcols_b + jj < dim[2])
                         {
-                            C[(i * maxrows_a + ii) * dim[0] + j * maxcols_b + jj] = buffC[count];
+                            C[(i * maxrows_a + ii) * dim[2] + j * maxcols_b + jj] = buffC[count];
                         }
                         count++;
                     }
